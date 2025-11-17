@@ -9,6 +9,7 @@ import LoginPage from './pages/login';
 import Marketplace from './pages/marketplace';
 import Dashboard from './pages/dashboard';
 import Homepage from './pages/homepage';
+import Messages from './pages/messages/Messages';
 
 const Routes = () => {
   return (
@@ -25,6 +26,7 @@ const Routes = () => {
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/homepage" element={<Homepage />} />
         <Route path="*" element={<NotFound />} />
+        <Route path="/messages" element={<Messages />} />
       </RouterRoutes>
       </ErrorBoundary>
     </BrowserRouter>
