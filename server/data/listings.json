@@ -1,0 +1,92 @@
+[
+    {
+        "id": "item1",
+        "title": "Engineering Maths III Textbook",
+        "description": "Standard textbook for 3rd semester engineering. Good condition, few highlights.",
+        "price": 450,
+        "category": "Textbooks & Study Material",
+        "condition": "Good",
+        "images": [
+            "https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?auto=format&fit=crop&q=80&w=1000"
+        ],
+        "location": "Hostel 10, IIT Bombay",
+        "sellerId": "user1",
+        "sellerName": "Rahul Sharma",
+        "sellerVerified": true,
+        "createdAt": "2023-10-01T10:00:00Z",
+        "views": 120,
+        "isAvailable": true
+    },
+    {
+        "id": "item2",
+        "title": "Casio fx-991EX Classwiz",
+        "description": "Scientific calculator, barely used. Comes with original box.",
+        "price": 800,
+        "category": "Electronics & Gadgets",
+        "condition": "Like New",
+        "images": [
+            "https://images.unsplash.com/photo-1587145820266-a5951ee6f620?auto=format&fit=crop&q=80&w=1000"
+        ],
+        "location": "Library, IIT Bombay",
+        "sellerId": "user1",
+        "sellerName": "Rahul Sharma",
+        "sellerVerified": true,
+        "createdAt": "2023-10-05T14:30:00Z",
+        "views": 85,
+        "isAvailable": true
+    },
+    {
+        "id": "item3",
+        "title": "Study Table Lamp",
+        "description": "Rechargeable LED lamp with 3 brightness modes.",
+        "price": 300,
+        "category": "Hostel & Room Essentials",
+        "condition": "Excellent",
+        "images": [
+            "https://images.unsplash.com/photo-1534234828563-02511c755c36?auto=format&fit=crop&q=80&w=1000"
+        ],
+        "location": "Hostel 3, IIT Bombay",
+        "sellerId": "user2",
+        "sellerName": "Priya Patel",
+        "sellerVerified": false,
+        "createdAt": "2023-10-10T09:15:00Z",
+        "views": 45,
+        "isAvailable": true
+    },
+    {
+        "id": "item4",
+        "title": "Hero Sprint Cycle",
+        "description": "Single speed, good for campus commute. Recently serviced.",
+        "price": 3500,
+        "category": "Cycles & Commute",
+        "condition": "Fair",
+        "images": [
+            "https://images.unsplash.com/photo-1485965120184-e220f721d03e?auto=format&fit=crop&q=80&w=1000"
+        ],
+        "location": "Main Gate",
+        "sellerId": "user2",
+        "sellerName": "Priya Patel",
+        "sellerVerified": false,
+        "createdAt": "2023-10-12T16:45:00Z",
+        "views": 210,
+        "isAvailable": true
+    },
+    {
+        "id": "item5",
+        "title": "College Hoodie - Medium",
+        "description": "Navy blue hoodie with college logo. Size M. Worn twice.",
+        "price": 600,
+        "category": "Fashion & Accessories",
+        "condition": "Excellent",
+        "images": [
+            "https://images.unsplash.com/photo-1556905055-8f358a7a47b2?auto=format&fit=crop&q=80&w=1000"
+        ],
+        "location": "Hostel 5",
+        "sellerId": "user1",
+        "sellerName": "Rahul Sharma",
+        "sellerVerified": true,
+        "createdAt": "2023-10-15T11:20:00Z",
+        "views": 60,
+        "isAvailable": true
+    }
+]
