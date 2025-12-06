@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Search, TrendingUp, Shield, Users, ArrowRight, BookOpen, Laptop, Bike, Shirt, Leaf, DollarSign, Package } from 'lucide-react';
+import { Search, TrendingUp, Shield, Users, ArrowRight, BookOpen, Laptop, Bike, Shirt, Leaf, DollarSign, Package, IndianRupee } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import Button from '../components/ui/Button';
 import Input from '../components/ui/Input';
@@ -44,7 +44,7 @@ const Home = () => {
             description: 'Buy and sell within your trusted college network of fellow students'
         },
         {
-            icon: DollarSign,
+            icon: IndianRupee,
             title: 'Best Prices',
             description: 'Student-friendly pricing on all items - save money on essentials'
         },
