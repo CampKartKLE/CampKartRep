@@ -57,7 +57,7 @@ const Home = () => {
 
     const stats = [
         { value: '1,200+', label: 'Items Reused', icon: Package },
-        { value: '₹5.4L', label: 'Money Saved', icon: DollarSign },
+        { value: '₹5.4L', label: 'Money Saved', icon: IndianRupee },
         { value: '850kg', label: 'CO₂ Reduced', icon: Leaf },
         { value: '500+', label: 'Active Traders', icon: Users }
     ];
