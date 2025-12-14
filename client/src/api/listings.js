@@ -1,44 +1,27 @@
-const API_URL = 'http://localhost:5000/api';
+import axiosClient from './axiosClient';
 
 export const getListings = async (filters = {}) => {
     const params = new URLSearchParams();
     Object.entries(filters).forEach(([key, value]) => {
-        if (value) params.append(key, value);
+        if (value && value !== 'All Categories') params.append(key, value);
     });
-
-    const response = await fetch(`${API_URL}/listings?${params.toString()}`);
-    if (!response.ok) throw new Error('Failed to fetch listings');
-    return response.json();
+    const { data } = await axiosClient.get(`/listings?${params.toString()}`);
+    return data;
 };
 
 export const getListingById = async (id) => {
-    const response = await fetch(`${API_URL}/listings/${id}`);
-    if (!response.ok) throw new Error('Failed to fetch listing');
-    return response.json();
+    const { data } = await axiosClient.get(`/listings/${id}`);
+    return data;
 };
 
-export const createListing = async (listingData, token) => {
-    const response = await fetch(`${API_URL}/listings`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify(listingData),
-    });
-    if (!response.ok) throw new Error('Failed to create listing');
-    return response.json();
+// Supports both JSON and FormData
+export const createListing = async (listingData) => {
+    // axios automatically sets Content-Type to multipart/form-data when body is FormData
+    const { data } = await axiosClient.post('/listings', listingData);
+    return data;
 };
 
-export const createReport = async (reportData, token) => {
-    const headers = { 'Content-Type': 'application/json' };
-    if (token) headers.Authorization = `Bearer ${token}`;
-
-    const response = await fetch(`${API_URL}/reports`, {
-        method: 'POST',
-        headers,
-        body: JSON.stringify(reportData),
-    });
-    if (!response.ok) throw new Error('Failed to create report');
-    return response.json();
+export const createReport = async (reportData) => {
+    const { data } = await axiosClient.post('/reports', reportData);
+    return data;
 };
