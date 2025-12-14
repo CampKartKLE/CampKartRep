@@ -17,7 +17,9 @@ export const AuthProvider = ({ children }) => {
   const [token, setToken] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  // Load existing session from localStorage
+  // -----------------------------
+  // Load existing session on refresh
+  // -----------------------------
   useEffect(() => {
     try {
       const storedUser = localStorage.getItem(USER_KEY);
@@ -26,6 +28,19 @@ export const AuthProvider = ({ children }) => {
       if (storedUser && storedToken) {
         setUser(JSON.parse(storedUser));
         setToken(storedToken);
+
+        // optional: refresh user data from backend
+        getMeApi()
+          .then((data) => {
+            if (data?.user) {
+              setUser(data.user);
+              localStorage.setItem(USER_KEY, JSON.stringify(data.user));
+            }
+          })
+          .catch(() => {
+            // token invalid → logout user
+            logout();
+          });
       }
     } catch (err) {
       console.error("Error loading auth from storage", err);
@@ -34,6 +49,9 @@ export const AuthProvider = ({ children }) => {
     }
   }, []);
 
+  // -----------------------------
+  // Persist login/signup session
+  // -----------------------------
   const persistSession = (userObj, tokenStr) => {
     setUser(userObj);
     setToken(tokenStr);
@@ -41,29 +59,34 @@ export const AuthProvider = ({ children }) => {
     localStorage.setItem(TOKEN_KEY, tokenStr);
   };
 
-  // ---------- LOGIN (email + password) ----------
+  // -----------------------------
+  // LOGIN
+  // -----------------------------
   const login = async (email, password) => {
-    const data = await loginApi(email, password); // { token, user, message }
+    const data = await loginApi(email, password); // { token, user }
     persistSession(data.user, data.token);
     return data.user;
   };
 
-  // ---------- SIGNUP STEP 1: request OTP ----------
-  // formData: { name, email, password, campus?, phone? ... }
+  // -----------------------------
+  // SIGNUP STEP 1: Request OTP
+  // -----------------------------
   const signupStart = async (formData) => {
-    const result = await requestOtpApi(formData);
-    // result: { message, email, expiresIn }
-    return result;
+    return await requestOtpApi(formData); // { message, email, expiresIn }
   };
 
-  // ---------- SIGNUP STEP 2: verify OTP ----------
+  // -----------------------------
+  // SIGNUP STEP 2: Verify OTP + Create Account
+  // -----------------------------
   const signupVerify = async (email, otp) => {
-    const data = await verifyOtpApi(email, otp); // { token, user, message }
+    const data = await verifyOtpApi(email, otp); // { user, token }
     persistSession(data.user, data.token);
     return data.user;
   };
 
-  // ---------- LOGOUT ----------
+  // -----------------------------
+  // LOGOUT
+  // -----------------------------
   const logout = () => {
     setUser(null);
     setToken(null);
@@ -71,11 +94,12 @@ export const AuthProvider = ({ children }) => {
     localStorage.removeItem(TOKEN_KEY);
   };
 
-  // ---------- OPTIONALLY: REFRESH CURRENT USER FROM /me ----------
+  // -----------------------------
+  // REFRESH USER (optional)
+  // -----------------------------
   const refreshUser = async () => {
-    if (!token) return;
     try {
-      const data = await getMeApi(token);
+      const data = await getMeApi();
       if (data?.user) {
         setUser(data.user);
         localStorage.setItem(USER_KEY, JSON.stringify(data.user));
@@ -91,9 +115,9 @@ export const AuthProvider = ({ children }) => {
     loading,
     isAuthenticated: !!user,
     isVerifiedStudent: !!user?.isVerifiedStudent,
-    login,          // (email, password)
-    signupStart,    // (formData) → request OTP
-    signupVerify,   // (email, otp) → final signup + login
+    login,
+    signupStart,
+    signupVerify,
     logout,
     refreshUser,
   };

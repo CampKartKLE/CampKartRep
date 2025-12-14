@@ -1,142 +1,146 @@
-const fs = require('fs');
-const path = require('path');
+// server/controllers/listingController.js
+const Listing = require("../models/Listing");
 
-const listingsPath = path.join(__dirname, '../data/listings.json');
+// -----------------------------
+// GET ALL LISTINGS (filters)
+// -----------------------------
+exports.getAllListings = async (req, res) => {
+  try {
+    let query = {};
 
-const getListings = () => {
-    try {
-        const data = fs.readFileSync(listingsPath, 'utf8');
-        return JSON.parse(data);
-    } catch (err) {
-        return [];
-    }
-};
-
-const saveListings = (listings) => {
-    fs.writeFileSync(listingsPath, JSON.stringify(listings, null, 2));
-};
-
-exports.getAllListings = (req, res) => {
-    let listings = getListings();
     const { q, category, minPrice, maxPrice, condition, location } = req.query;
 
-    // Filter by search query
     if (q) {
-        const lowerQ = q.toLowerCase();
-        listings = listings.filter(l =>
-            l.title.toLowerCase().includes(lowerQ) ||
-            l.description.toLowerCase().includes(lowerQ)
-        );
+      query.$or = [
+        { title: { $regex: q, $options: "i" } },
+        { description: { $regex: q, $options: "i" } },
+      ];
     }
 
-    // Filter by category
-    if (category && category !== 'All Items') {
-        listings = listings.filter(l => l.category === category);
-    }
+    if (category && category !== "All Items") query.category = category;
 
-    // Filter by price
-    if (minPrice) {
-        listings = listings.filter(l => l.price >= Number(minPrice));
-    }
-    if (maxPrice) {
-        listings = listings.filter(l => l.price <= Number(maxPrice));
-    }
+    if (minPrice) query.price = { ...query.price, $gte: Number(minPrice) };
+    if (maxPrice) query.price = { ...query.price, $lte: Number(maxPrice) };
 
-    // Filter by condition
-    if (condition) {
-        const conditions = condition.split(',');
-        listings = listings.filter(l => conditions.includes(l.condition));
-    }
+    if (condition) query.condition = { $in: condition.split(",") };
 
-    // Filter by location
-    if (location) {
-        // Simple string match for now
-        listings = listings.filter(l => l.location.toLowerCase().includes(location.toLowerCase()));
-    }
+    if (location)
+      query.location = { $regex: location, $options: "i" };
+
+    const listings = await Listing.find(query).sort({ createdAt: -1 });
 
     res.json(listings);
+  } catch (err) {
+    console.error("GetAllListings error:", err);
+    res.status(500).json({ message: "Failed to fetch listings" });
+  }
 };
 
-exports.getListingById = (req, res) => {
-    const listings = getListings();
-    const listing = listings.find(l => l.id === req.params.id);
+// -----------------------------
+// GET LISTING BY ID
+// -----------------------------
+exports.getListingById = async (req, res) => {
+  try {
+    const listing = await Listing.findById(req.params.id);
+    if (!listing) return res.status(404).json({ message: "Listing not found" });
 
-    if (!listing) {
-        return res.status(404).json({ message: 'Listing not found' });
-    }
-
-    // Increment views (simple implementation)
-    listing.views = (listing.views || 0) + 1;
-    saveListings(listings);
+    listing.views += 1;
+    await listing.save();
 
     res.json(listing);
+  } catch (err) {
+    console.error("GetListing error:", err);
+    res.status(500).json({ message: "Failed to fetch listing" });
+  }
 };
 
-exports.createListing = (req, res) => {
-    const { title, description, price, category, condition, images, location } = req.body;
+// -----------------------------
+// CREATE LISTING (WITH IMAGES)
+// -----------------------------
+exports.createListing = async (req, res) => {
+  try {
+    const { title, description, price, category, condition, location } = req.body;
 
     if (!title || !price || !category || !condition) {
-        return res.status(400).json({ message: 'Missing required fields' });
+      return res.status(400).json({ message: "Missing required fields" });
     }
 
-    const listings = getListings();
+    // Ensure images exist (multer upload)
+    if (!req.files || req.files.length === 0) {
+      return res.status(400).json({ message: "No images uploaded" });
+    }
 
-    const newListing = {
-        id: Date.now().toString(),
-        title,
-        description,
-        price: Number(price),
-        category,
-        condition,
-        images: images || [],
-        location,
-        sellerId: req.user.id,
-        sellerName: req.user.name, // Denormalize for easier display
-        sellerVerified: req.user.isVerifiedStudent,
-        createdAt: new Date().toISOString(),
-        views: 0,
-        isAvailable: true
-    };
+    // Generate full URLs
+    const imageUrls = req.files.map(
+      (file) => `${process.env.BASE_URL}/uploads/${file.filename}`
+    );
 
-    listings.push(newListing);
-    saveListings(listings);
+    const newListing = await Listing.create({
+      title,
+      description,
+      price,
+      category,
+      condition,
+      location,
+      images: imageUrls,
+      seller: {
+        id: req.user.id,
+        name: req.user.name,
+        email: req.user.email,
+        verified: req.user.isVerifiedStudent,
+      },
+      views: 0,
+      isAvailable: true,
+    });
 
-    res.status(201).json(newListing);
+    res.status(201).json({ success: true, listing: newListing });
+  } catch (err) {
+    console.error("CreateListing error:", err);
+    res.status(500).json({ message: "Failed to create listing" });
+  }
 };
 
-exports.updateListing = (req, res) => {
-    const listings = getListings();
-    const index = listings.findIndex(l => l.id === req.params.id);
+// -----------------------------
+// UPDATE LISTING
+// -----------------------------
+exports.updateListing = async (req, res) => {
+  try {
+    const listing = await Listing.findById(req.params.id);
+    if (!listing) return res.status(404).json({ message: "Listing not found" });
 
-    if (index === -1) {
-        return res.status(404).json({ message: 'Listing not found' });
+    if (listing.seller.id.toString() !== req.user.id) {
+      return res.status(403).json({ message: "Not authorized" });
     }
 
-    if (listings[index].sellerId !== req.user.id) {
-        return res.status(403).json({ message: 'Not authorized' });
-    }
+    const updated = await Listing.findByIdAndUpdate(req.params.id, req.body, {
+      new: true,
+    });
 
-    const updatedListing = { ...listings[index], ...req.body };
-    listings[index] = updatedListing;
-    saveListings(listings);
-
-    res.json(updatedListing);
+    res.json(updated);
+  } catch (err) {
+    console.error("UpdateListing error:", err);
+    res.status(500).json({ message: "Failed to update listing" });
+  }
 };
 
-exports.deleteListing = (req, res) => {
-    let listings = getListings();
-    const listing = listings.find(l => l.id === req.params.id);
+// -----------------------------
+// DELETE LISTING
+// -----------------------------
+exports.deleteListing = async (req, res) => {
+  try {
+    const listing = await Listing.findById(req.params.id);
 
-    if (!listing) {
-        return res.status(404).json({ message: 'Listing not found' });
+    if (!listing) return res.status(404).json({ message: "Listing not found" });
+
+    if (listing.seller.id.toString() !== req.user.id) {
+      return res.status(403).json({ message: "Not authorized" });
     }
 
-    if (listing.sellerId !== req.user.id) {
-        return res.status(403).json({ message: 'Not authorized' });
-    }
+    await Listing.findByIdAndDelete(req.params.id);
 
-    listings = listings.filter(l => l.id !== req.params.id);
-    saveListings(listings);
-
-    res.json({ message: 'Listing deleted' });
+    res.json({ message: "Listing deleted" });
+  } catch (err) {
+    console.error("DeleteListing error:", err);
+    res.status(500).json({ message: "Failed to delete listing" });
+  }
 };
