@@ -9,7 +9,7 @@ const protect = require('../middleware/authMiddleware');
 router.get('/conversations', protect, async (req, res) => {
     try {
         const conversations = await Conversation.find({
-            participants: req.user._id
+            participants: req.user.id
         })
             .populate('participants', 'name avatar') // adjust fields as needed
             .populate('lastMessage')
@@ -33,7 +33,7 @@ router.post('/conversations', protect, async (req, res) => {
     try {
         // Check if conversation already exists
         let conversation = await Conversation.findOne({
-            participants: { $all: [req.user._id, recipientId] }
+            participants: { $all: [req.user.id, recipientId] }
         }).populate('participants', 'name avatar');
 
         if (conversation) {
@@ -42,7 +42,7 @@ router.post('/conversations', protect, async (req, res) => {
 
         // Create new conversation
         conversation = await Conversation.create({
-            participants: [req.user._id, recipientId]
+            participants: [req.user.id, recipientId]
         });
 
         conversation = await conversation.populate('participants', 'name avatar');
@@ -79,7 +79,7 @@ router.post('/messages', protect, async (req, res) => {
     try {
         const newMessage = await Message.create({
             conversationId,
-            sender: req.user._id,
+            sender: req.user.id,
             content
         });
 
