@@ -13,6 +13,7 @@ const Header = () => {
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const [isProfileOpen, setIsProfileOpen] = useState(false);
     const [isOnboardingOpen, setIsOnboardingOpen] = useState(false);
+    const [authIntent, setAuthIntent] = useState('login'); // 'login' | 'signup'
     const navigate = useNavigate();
 
     // Close profile dropdown when clicking outside (simple implementation)
@@ -20,6 +21,12 @@ const Header = () => {
     const toggleProfile = () => setIsProfileOpen(!isProfileOpen);
 
     const handleLoginClick = () => {
+        setAuthIntent('login');
+        setIsOnboardingOpen(true);
+    };
+
+    const handleSignupClick = () => {
+        setAuthIntent('signup');
         setIsOnboardingOpen(true);
     };
 
@@ -133,7 +140,7 @@ const Header = () => {
                                 <Button variant="ghost" onClick={handleLoginClick} className="font-semibold text-gray-600 hover:text-campus-blue">
                                     Log in
                                 </Button>
-                                <Button onClick={handleLoginClick} className="rounded-full px-6 shadow-lg shadow-blue-900/10 hover:shadow-blue-900/20">
+                                <Button onClick={handleSignupClick} className="rounded-full px-6 shadow-lg shadow-blue-900/10 hover:shadow-blue-900/20">
                                     Sign up
                                 </Button>
                             </div>
@@ -197,7 +204,7 @@ const Header = () => {
                                     </Button>
                                     <Button
                                         className="w-full justify-center py-6 text-lg"
-                                        onClick={() => { setIsMenuOpen(false); handleLoginClick(); }}
+                                        onClick={() => { setIsMenuOpen(false); handleSignupClick(); }}
                                     >
                                         Sign up
                                     </Button>
@@ -212,6 +219,7 @@ const Header = () => {
             <LoginOnboardingModal
                 isOpen={isOnboardingOpen}
                 onClose={() => setIsOnboardingOpen(false)}
+                intent={authIntent}
             />
         </>
     );

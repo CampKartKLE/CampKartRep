@@ -4,7 +4,7 @@ import { Mail, Smartphone, ArrowRight, ShieldCheck, ShoppingBag, Heart } from 'l
 import Modal from '../ui/Modal';
 import Button from '../ui/Button';
 
-const LoginOnboardingModal = ({ isOpen, onClose }) => {
+const LoginOnboardingModal = ({ isOpen, onClose, intent = 'login' }) => {
     const navigate = useNavigate();
     const [currentSlide, setCurrentSlide] = useState(0);
 
@@ -37,7 +37,7 @@ const LoginOnboardingModal = ({ isOpen, onClose }) => {
 
     const handleEmailLogin = () => {
         onClose();
-        navigate('/login');
+        navigate(intent === 'signup' ? '/signup' : '/login');
     };
 
     return (
@@ -116,7 +116,7 @@ const LoginOnboardingModal = ({ isOpen, onClose }) => {
                         className="w-full h-12 font-medium"
                     >
                         <Mail size={18} className="mr-2" />
-                        Login with Email
+                        {intent === 'signup' ? "Sign up with Email" : "Login with Email"}
                     </Button>
 
                     <p className="text-xs text-center text-gray-400 mt-4 leading-normal">
