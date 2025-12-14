@@ -70,10 +70,8 @@ exports.createListing = async (req, res) => {
       return res.status(400).json({ message: "No images uploaded" });
     }
 
-    // Generate full URLs
-    const imageUrls = req.files.map(
-      (file) => `${process.env.BASE_URL}/uploads/${file.filename}`
-    );
+    // Generate full URLs (Cloudinary returns the URL in file.path)
+    const imageUrls = req.files.map((file) => file.path);
 
     const newListing = await Listing.create({
       title,
@@ -112,7 +110,23 @@ exports.updateListing = async (req, res) => {
       return res.status(403).json({ message: "Not authorized" });
     }
 
-    const updated = await Listing.findByIdAndUpdate(req.params.id, req.body, {
+    // Handle Images
+    let finalImages = listing.images; // fallback
+
+    // If we have new files or existingImages field, we update images
+    if (req.files || req.body.existingImages) {
+      const newImageUrls = req.files ? req.files.map((file) => file.path) : [];
+      const existingImages = req.body.existingImages ? [].concat(req.body.existingImages) : [];
+      finalImages = [...existingImages, ...newImageUrls];
+    }
+
+    // Create update object
+    const updateData = {
+      ...req.body,
+      images: finalImages
+    };
+
+    const updated = await Listing.findByIdAndUpdate(req.params.id, updateData, {
       new: true,
     });
 

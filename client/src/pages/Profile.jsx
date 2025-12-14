@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
 import { Package, Heart, Settings, Edit, Trash2, CheckCircle } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-import { mockApi } from '../api/mockApi';
+import { getListings, deleteListing } from '../api/listings';
 import Avatar from '../components/ui/Avatar';
 import Button from '../components/ui/Button';
 import Badge from '../components/ui/Badge';
@@ -25,13 +25,17 @@ const Profile = () => {
 
     const fetchData = async () => {
         try {
-            const allProducts = await mockApi.getProducts();
-            const userProducts = allProducts.filter(p => p.seller.email === user?.email);
+            const allProducts = await getListings();
+            // Filter by ID to match backend "protect" middleware logic
+            const userProducts = allProducts.filter(p =>
+                (p.seller?.id === user?._id) ||
+                (p.seller?._id === user?._id)
+            );
             setMyListings(userProducts);
 
             // Mock saved items from localStorage
             const saved = JSON.parse(localStorage.getItem('saved_items') || '[]');
-            setSavedItems(allProducts.filter(p => saved.includes(p.id)));
+            setSavedItems(allProducts.filter(p => saved.includes(p.id || p._id)));
         } catch (error) {
             console.error(error);
         } finally {
@@ -39,10 +43,16 @@ const Profile = () => {
         }
     };
 
-    const handleDelete = (id) => {
+    const handleDelete = async (id) => {
         if (window.confirm('Are you sure you want to delete this listing?')) {
-            setMyListings(myListings.filter(item => item.id !== id));
-            addToast({ title: 'Deleted', description: 'Listing removed successfully' });
+            try {
+                await deleteListing(id);
+                setMyListings(myListings.filter(item => (item.id !== id && item._id !== id)));
+                addToast({ title: 'Deleted', description: 'Listing removed successfully' });
+            } catch (error) {
+                console.error("Delete failed", error);
+                addToast({ title: 'Error', description: 'Failed to delete listing', variant: 'destructive' });
+            }
         }
     };
 
@@ -114,14 +124,16 @@ const Profile = () => {
                                         <div key={item.id} className="relative group">
                                             <ProductCard product={item} />
                                             <div className="absolute top-2 right-2 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity z-10">
-                                                <Button size="icon" variant="secondary" className="h-8 w-8 shadow-lg">
-                                                    <Edit size={14} />
-                                                </Button>
+                                                <Link to={`/sell?edit=${item.id}`}>
+                                                    <Button size="icon" variant="secondary" className="h-8 w-8 shadow-lg">
+                                                        <Edit size={14} />
+                                                    </Button>
+                                                </Link>
                                                 <Button
                                                     size="icon"
                                                     variant="destructive"
                                                     className="h-8 w-8 shadow-lg"
-                                                    onClick={(e) => { e.preventDefault(); handleDelete(item.id); }}
+                                                    onClick={(e) => { e.preventDefault(); handleDelete(item.id || item._id); }}
                                                 >
                                                     <Trash2 size={14} />
                                                 </Button>

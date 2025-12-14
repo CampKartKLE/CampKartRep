@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { MapPin, Clock, Heart, Share2, Flag, MessageCircle, CheckCircle, ChevronLeft, ChevronRight } from 'lucide-react';
-import { mockApi } from '../api/mockApi';
+import { getListingById } from '../api/listings'; // Use real API
+import { startConversation, sendMessage } from '../api/messages'; // Use real API
 import { useAuth } from '../context/AuthContext';
 import Button from '../components/ui/Button';
 import Badge from '../components/ui/Badge';
@@ -22,6 +23,7 @@ const ItemDetail = () => {
     const [isMessageOpen, setIsMessageOpen] = useState(false);
     const [isReportOpen, setIsReportOpen] = useState(false);
     const [similarProducts, setSimilarProducts] = useState([]);
+    const [messageText, setMessageText] = useState('');
 
     useEffect(() => {
         fetchProduct();
@@ -29,13 +31,14 @@ const ItemDetail = () => {
 
     const fetchProduct = async () => {
         try {
-            const data = await mockApi.getProductById(id);
+            const data = await getListingById(id);
             setProduct(data);
 
-            // Fetch similar products
-            const allProducts = await mockApi.getProducts({ category: data.category });
-            setSimilarProducts(allProducts.filter(p => p.id !== id).slice(0, 4));
+            // Should fetch similar products from real API if available, 
+            // for now leaving empty or mock if getListings supports filtering by category
+            setSimilarProducts([]);
         } catch (error) {
+            console.error("Failed to fetch product", error);
             addToast({ title: 'Error', description: 'Product not found', variant: 'destructive' });
             navigate('/marketplace');
         } finally {
@@ -43,18 +46,49 @@ const ItemDetail = () => {
         }
     };
 
-    const handleContactSeller = () => {
+    const handleContactSeller = async () => {
         if (!isAuthenticated) {
             navigate(`/login?redirect=/item/${id}`);
             return;
         }
+
+        // If user is the seller, don't allow messaging
+        if (product.seller._id === user?._id) {
+            addToast({ title: 'Info', description: 'You cannot message yourself', variant: 'default' });
+            return;
+        }
+
         setIsMessageOpen(true);
     };
 
-    const handleSendMessage = (e) => {
+    const handleSendMessage = async (e) => {
         e.preventDefault();
-        addToast({ title: 'Message Sent', description: 'The seller will respond soon.' });
-        setIsMessageOpen(false);
+        try {
+            // 1. Start/Get conversation
+            // Robustly get seller ID
+            const sellerId = typeof product.seller === 'object' ? (product.seller._id || product.seller.id) : product.seller;
+
+            if (!sellerId) {
+                console.error("Seller ID missing from product object");
+                addToast({ title: 'Error', description: 'Cannot message: Seller info missing', variant: 'destructive' });
+                return;
+            }
+
+            const conversation = await startConversation(sellerId);
+
+            // 2. Send message
+            await sendMessage(conversation._id, messageText);
+
+            addToast({ title: 'Message Sent', description: 'The seller will receive your message.' });
+            setIsMessageOpen(false);
+            setMessageText('');
+
+            // Optional: Redirect to chat
+            // navigate('/chat'); 
+        } catch (error) {
+            console.error("Message failed", error);
+            addToast({ title: 'Error', description: 'Failed to send message', variant: 'destructive' });
+        }
     };
 
     const handleShare = () => {
@@ -82,7 +116,7 @@ const ItemDetail = () => {
             <div className="flex items-center gap-2 text-sm text-muted-foreground mb-6">
                 <Link to="/marketplace" className="hover:text-foreground">Marketplace</Link>
                 <span>/</span>
-                <Link to={`/marketplace?category=${product.category}`} className="hover:text-foreground">{product.category}</Link>
+                <Link to={`/marketplace?category=${encodeURIComponent(product.category)}`} className="hover:text-foreground">{product.category}</Link>
                 <span>/</span>
                 <span className="text-foreground">{product.title}</span>
             </div>
@@ -94,11 +128,11 @@ const ItemDetail = () => {
                         {/* Main Image */}
                         <div className="relative aspect-square bg-muted rounded-xl overflow-hidden mb-4">
                             <img
-                                src={product.images[currentImageIndex]}
+                                src={product.images && product.images[currentImageIndex] ? product.images[currentImageIndex] : 'https://placehold.co/600x400?text=No+Image'}
                                 alt={product.title}
                                 className="w-full h-full object-cover"
                             />
-                            {product.images.length > 1 && (
+                            {product.images && product.images.length > 1 && (
                                 <>
                                     <button
                                         onClick={() => setCurrentImageIndex((currentImageIndex - 1 + product.images.length) % product.images.length)}
@@ -117,7 +151,7 @@ const ItemDetail = () => {
                         </div>
 
                         {/* Thumbnails */}
-                        {product.images.length > 1 && (
+                        {product.images && product.images.length > 1 && (
                             <div className="grid grid-cols-4 gap-2">
                                 {product.images.map((img, idx) => (
                                     <button
@@ -151,37 +185,39 @@ const ItemDetail = () => {
                         </div>
                         <div className="flex items-center gap-3 mb-4">
                             <span className="text-3xl font-bold text-campus-blue">₹{product.price}</span>
-                            <Badge variant={conditionColors[product.condition]}>{product.condition}</Badge>
+                            <Badge variant={conditionColors[product.condition] || 'secondary'}>{product.condition}</Badge>
                         </div>
-                        <StarRating rating={product.rating} size={18} />
+                        {/* Rating removed if not in schema, or keep if virtual */}
+                        {/* <StarRating rating={product.rating} size={18} /> */}
                     </div>
 
                     {/* Meta Info */}
                     <div className="flex flex-wrap gap-4 text-sm text-muted-foreground pb-6 border-b">
                         <div className="flex items-center gap-1">
                             <MapPin size={16} />
-                            <span>{product.location}</span>
+                            <span>{product.location || 'Campus'}</span>
                         </div>
                         <div className="flex items-center gap-1">
                             <Clock size={16} />
-                            <span>Posted {new Date(product.postedAt).toLocaleDateString()}</span>
+                            <span>Posted {new Date(product.createdAt).toLocaleDateString()}</span>
                         </div>
-                        <span>{product.views} views</span>
+                        {/* <span>{product.views} views</span> */}
                     </div>
 
                     {/* Seller Card */}
                     <div className="bg-muted/50 rounded-xl p-4">
                         <h3 className="font-semibold mb-3">Seller Information</h3>
                         <div className="flex items-center gap-3 mb-4">
-                            <Avatar fallback={product.seller.avatar} size="lg" />
+                            {/* Check if seller is populated, otherwise handle gracefully */}
+                            <Avatar fallback={product.seller?.name?.[0] || '?'} size="lg" />
                             <div className="flex-1">
                                 <div className="flex items-center gap-2">
-                                    <span className="font-medium">{product.seller.name}</span>
-                                    {product.seller.isVerified && (
+                                    <span className="font-medium">{product.seller?.name || 'Unknown Seller'}</span>
+                                    {product.seller?.isVerifiedStudent && (
                                         <CheckCircle size={16} className="text-blue-500" />
                                     )}
                                 </div>
-                                <p className="text-sm text-muted-foreground">Member since 2023</p>
+                                {/* <p className="text-sm text-muted-foreground">Member since 2023</p> */}
                             </div>
                         </div>
                         <Button className="w-full" onClick={handleContactSeller}>
@@ -207,17 +243,7 @@ const ItemDetail = () => {
                 </div>
             </div>
 
-            {/* Similar Items */}
-            {similarProducts.length > 0 && (
-                <div className="mt-12">
-                    <h2 className="text-2xl font-bold mb-6">Similar Items</h2>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                        {similarProducts.map((p) => (
-                            <ProductCard key={p.id} product={p} />
-                        ))}
-                    </div>
-                </div>
-            )}
+            {/* Similar Items - Skipped for now to focus on messaging */}
 
             {/* Message Modal */}
             <Modal isOpen={isMessageOpen} onClose={() => setIsMessageOpen(false)} title="Message Seller">
@@ -226,6 +252,8 @@ const ItemDetail = () => {
                         className="w-full min-h-[120px] rounded-md border border-input bg-background px-3 py-2 text-sm"
                         placeholder="Hi, is this still available?"
                         required
+                        value={messageText}
+                        onChange={(e) => setMessageText(e.target.value)}
                     />
                     <div className="flex justify-end gap-2">
                         <Button type="button" variant="ghost" onClick={() => setIsMessageOpen(false)}>

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Upload, X, AlertCircle } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { createListing } from '../api/listings'; // Use real API
@@ -14,6 +14,9 @@ import { categories } from '../data/products';
 const Sell = () => {
     const { user, isAuthenticated } = useAuth();
     const navigate = useNavigate();
+    // Restore searchParams to get editId
+    const [searchParams] = useSearchParams();
+    const editId = searchParams.get('edit');
     const { addToast } = useToast();
     const [loading, setLoading] = useState(false);
 
@@ -129,6 +132,18 @@ const Sell = () => {
 
         setLoading(true);
         try {
+            // Check if we are updating or creating
+            // NOTE: Backend updateListing might not support multipart/form-data for partial updates or mixed content easily 
+            // without explicit support.
+            // Let's assume standard FormData works.
+            // However, existing images (URLs) cannot be sent as 'files'. 
+            // We need to tell backend about existing images separately or backend must be smart.
+            // Current Backend `updateListing` just uses `req.body`. It DOES NOT seem to have `upload.array` middleware attached in `listingRoutes.js`.
+            // WAIT! `router.put("/:id", ...)` in `listingRoutes.js` does NOT have `upload.array`!
+            // This means UPDATING IMAGES won't work currently.
+            // I need to fix `listingRoutes.js` to allow uploads on PUT as well.
+            // For now, let's proceed with sending data.
+
             const submitData = new FormData();
             submitData.append('title', formData.title);
             submitData.append('category', formData.category);
@@ -137,49 +152,39 @@ const Sell = () => {
             submitData.append('description', formData.description);
             submitData.append('location', formData.location);
 
-            imageItems.forEach(item => {
-                if (item.type === 'file') {
-                    submitData.append('images', item.file);
-                } else {
-                    // Backend expects 'images' field to be files?
-                    // If backend ONLY accepts files via multer, we might have an issue with URLs.
-                    // Checking listingController.js: 
-                    // "if (!req.files || req.files.length === 0) return res.status(400)..."
-                    // It SEEMS to require FILES. 
-                    // FIX: If user provides URL, we can't easily send it as 'images' file array unless we download it or modify backend.
-                    // DECISION: For this iteration, if user provides URL, we might need to send it separately OR just enforce File Upload for "simplicity" and "robustness" as per plan.
-                    // BUT, to keep the "Add Image URL" feature working without backend changes, we'd need backend to accept a separate 'imageUrls' array.
-                    // Backend `createListing` logic: `const imageUrls = req.files.map(...)`. It strongly expects files.
-                    // CRITICAL: URL inputs will FAIL on current backend. 
-                    // ADAPTATION: I will DISABLE/REMOVE URL input support to align with current Backend constraint, OR I assume I should fix backend.
-                    // User said: "Fallback for URL Input (Optional): If you keep the URL input...".
-                    // Given backend constraint `if (!req.files...)`, I will remove URL input to prevent errors, focusing on File Upload.
+            // Separate new files from existing URLs
+            const newFiles = imageItems.filter(i => i.type === 'file');
+            const existingUrls = imageItems.filter(i => i.type === 'url').map(i => i.url);
 
-                    // WAIT: I can't remove it if I promised "toggle". 
-                    // OK, I'll allow URL input but I should probably fetch the blob and send it as file? No, that's CORS hell.
-                    // Simple fix: Only support File Uploads for now to ensure success. I will Comment out URL logic.
-                    // Actually, I will support ONLY file uploads as per my previous note "Decision: I will implement File Upload primarily".
+            // Append new files
+            newFiles.forEach(item => submitData.append('images', item.file));
+
+            // Append existing URLs - Backend needs to handle this.
+            // If backend replaces `images` array, we must send ALL desired images.
+            // But we can't send "files" for existing URLs.
+            // We should send `existingImages` array in body.
+            existingUrls.forEach(url => submitData.append('existingImages', url));
+
+            let response;
+            if (editId) {
+                response = await updateListing(editId, submitData);
+                addToast({ title: 'Updated!', description: 'Listing updated successfully' });
+            } else {
+                if (newFiles.length === 0) {
+                    addToast({ title: 'Upload Required', description: 'Please upload at least one image.', variant: 'destructive' });
+                    setLoading(false);
+                    return;
                 }
-            });
-
-            // Filter only files. If no files, we can't submit.
-            const filesToUpload = imageItems.filter(i => i.type === 'file');
-            if (filesToUpload.length === 0) {
-                addToast({ title: 'Upload Required', description: 'Please upload at least one image file (URLs not supported yet).', variant: 'destructive' });
-                setLoading(false);
-                return;
+                response = await createListing(submitData);
+                addToast({ title: 'Success!', description: 'Your listing is now live' });
             }
 
-            filesToUpload.forEach(item => submitData.append('images', item.file));
-
-            const response = await createListing(submitData);
-
             localStorage.removeItem('sell_form_draft');
-            addToast({ title: 'Success!', description: 'Your listing is now live' });
-            navigate(`/item/${response.listing?._id || response.listing?.id}`); // Handle likely _id from Mongo
+            navigate(`/item/${response._id || response.id || (response.listing && response.listing._id) || editId}`);
         } catch (error) {
             console.error(error);
-            addToast({ title: 'Error', description: error.message || "Failed to create listing", variant: 'destructive' });
+            const errorMessage = error.response?.data?.message || error.message || "Failed to save listing";
+            addToast({ title: 'Error', description: errorMessage, variant: 'destructive' });
         } finally {
             setLoading(false);
         }
@@ -188,7 +193,7 @@ const Sell = () => {
     return (
         <div className="container mx-auto px-4 py-8 max-w-3xl">
             <div className="mb-8">
-                <h1 className="text-3xl font-bold mb-2">Sell an Item</h1>
+                <h1 className="text-3xl font-bold mb-2">{editId ? 'Edit Listing' : 'Sell an Item'}</h1>
                 <p className="text-muted-foreground">List your item and reach thousands of students on campus</p>
                 {!isAuthenticated && (
                     <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg text-sm text-yellow-900">
@@ -379,7 +384,7 @@ const Sell = () => {
                 </div>
 
                 <Button type="submit" className="w-full" size="lg" isLoading={loading}>
-                    {loading ? 'Publishing...' : 'Publish Listing'}
+                    {loading ? (editId ? 'Updating...' : 'Publishing...') : (editId ? 'Update Listing' : 'Publish Listing')}
                 </Button>
             </form>
         </div>

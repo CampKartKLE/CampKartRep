@@ -7,15 +7,19 @@ const multer = require("multer");
 // ------------------------
 // Multer Setup
 // ------------------------
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, "uploads/");
-  },
-  filename: (req, file, cb) => {
-    cb(null, Date.now() + "-" + file.originalname);
-  },
-});
+const { storage } = require("../config/cloudinary");
+// const storage = multer.diskStorage({
+//     destination: (req, file, cb) => {
+//         cb(null, "uploads/");
+//     },
+//     filename: (req, file, cb) => {
+//         cb(null, Date.now() + "-" + file.originalname);
+//     },
+// });
 
+// ------------------------
+// Multer Setup
+// ------------------------
 const upload = multer({ storage });
 
 // ------------------------
@@ -24,10 +28,9 @@ const upload = multer({ storage });
 router.get("/", listingController.getAllListings);
 router.get("/:id", listingController.getListingById);
 
-// Upload up to 5 images
 router.post("/", authMiddleware, upload.array("images", 5), listingController.createListing);
 
-router.put("/:id", authMiddleware, listingController.updateListing);
+router.put("/:id", authMiddleware, upload.array("images", 5), listingController.updateListing);
 router.delete("/:id", authMiddleware, listingController.deleteListing);
 
 module.exports = router;

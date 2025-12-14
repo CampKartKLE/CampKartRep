@@ -18,7 +18,12 @@ module.exports = async (req, res, next) => {
     if (!user)
       return res.status(401).json({ message: "Invalid or expired token" });
 
-    req.user = { id: user._id, email: user.email };
+    req.user = {
+      id: user._id,
+      email: user.email,
+      name: user.name,
+      isVerifiedStudent: user.isVerifiedStudent
+    };
     next();
   } catch (err) {
     console.error("Auth Error:", err);

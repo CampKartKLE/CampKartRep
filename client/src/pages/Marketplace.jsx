@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { SlidersHorizontal, Grid, List } from 'lucide-react';
-import { mockApi } from '../api/mockApi';
+import { getListings } from '../api/listings';
 import ProductCard from '../components/marketplace/ProductCard';
 import FilterPanel from '../components/marketplace/FilterPanel';
 import Button from '../components/ui/Button';
@@ -33,7 +33,7 @@ const Marketplace = () => {
     const fetchProducts = async () => {
         setLoading(true);
         try {
-            const data = await mockApi.getProducts(filters);
+            const data = await getListings(filters);
             setProducts(data);
         } catch (error) {
             addToast({ title: 'Error', description: 'Failed to load products', variant: 'destructive' });
@@ -136,8 +136,8 @@ const Marketplace = () => {
                         </div>
                     ) : products.length > 0 ? (
                         <div className={`grid gap-4 ${viewMode === 'grid'
-                                ? 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3'
-                                : 'grid-cols-1'
+                            ? 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3'
+                            : 'grid-cols-1'
                             }`}>
                             {products.map((product) => (
                                 <ProductCard key={product.id} product={product} onSave={handleSave} />

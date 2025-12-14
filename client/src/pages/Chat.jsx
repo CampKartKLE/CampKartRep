@@ -1,61 +1,72 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Search, Send, MoreVertical, CheckCheck } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import Avatar from '../components/ui/Avatar';
 import Input from '../components/ui/Input';
 import Button from '../components/ui/Button';
 import { Card } from '../components/ui/Card';
+import { getConversations, getMessages, sendMessage } from '../api/messages';
 
 const Chat = () => {
     const { user } = useAuth();
+    const [conversations, setConversations] = useState([]);
     const [selectedChat, setSelectedChat] = useState(null);
+    const [messages, setMessages] = useState([]);
     const [message, setMessage] = useState('');
+    const [loading, setLoading] = useState(true);
 
-    // Mock chat data
-    const chats = [
-        {
-            id: 1,
-            name: 'Priya Patel',
-            avatar: 'P',
-            lastMessage: 'Is the calculator still available?',
-            time: '2m ago',
-            unread: 2,
-            online: true
-        },
-        {
-            id: 2,
-            name: 'Amit Kumar',
-            avatar: 'A',
-            lastMessage: 'Thanks for the quick response!',
-            time: '1h ago',
-            unread: 0,
-            online: false
-        },
-        {
-            id: 3,
-            name: 'Neha Gupta',
-            avatar: 'N',
-            lastMessage: 'Can we meet tomorrow?',
-            time: '3h ago',
-            unread: 1,
-            online: true
+    useEffect(() => {
+        const fetchConversations = async () => {
+            try {
+                const data = await getConversations();
+                setConversations(data);
+            } catch (error) {
+                console.error("Failed to fetch conversations", error);
+            } finally {
+                setLoading(false);
+            }
+        };
+        fetchConversations();
+    }, []);
+
+    const handleChatSelect = async (chat) => {
+        setSelectedChat(chat);
+        try {
+            const msgs = await getMessages(chat._id);
+            setMessages(msgs);
+        } catch (error) {
+            console.error("Failed to fetch messages", error);
         }
-    ];
+    };
 
-    const messages = selectedChat ? [
-        { id: 1, sender: 'them', text: 'Hi! Is this item still available?', time: '10:30 AM' },
-        { id: 2, sender: 'me', text: 'Yes, it is! Are you interested?', time: '10:32 AM' },
-        { id: 3, sender: 'them', text: 'Great! Can we meet today?', time: '10:35 AM' },
-        { id: 4, sender: 'me', text: 'Sure, how about 4 PM at the library?', time: '10:36 AM' },
-        { id: 5, sender: 'them', text: 'Perfect! See you there.', time: '10:37 AM' }
-    ] : [];
-
-    const handleSend = (e) => {
+    const handleSend = async (e) => {
         e.preventDefault();
-        if (message.trim()) {
-            console.log('Sending:', message);
-            setMessage('');
+        if (message.trim() && selectedChat) {
+            try {
+                const newMsg = await sendMessage(selectedChat._id, message);
+                setMessages([...messages, newMsg]);
+                setMessage('');
+
+                // Update last message in conversation list
+                setConversations(prev => {
+                    const updated = prev.map(c =>
+                        c._id === selectedChat._id
+                            ? { ...c, lastMessage: newMsg, lastMessageAt: newMsg.createdAt }
+                            : c
+                    );
+                    return updated.sort((a, b) => new Date(b.lastMessageAt) - new Date(a.lastMessageAt));
+                });
+
+            } catch (error) {
+                console.error("Failed to send message", error);
+            }
         }
+    };
+
+    // Helper to get other participant
+    const getOtherParticipant = (conversation) => {
+        if (!conversation?.participants) return {};
+        return conversation.participants.find(p => p._id !== user?._id) || {};
     };
 
     return (
@@ -72,33 +83,39 @@ const Chat = () => {
                     </div>
 
                     <div className="flex-1 overflow-y-auto">
-                        {chats.map((chat) => (
-                            <button
-                                key={chat.id}
-                                onClick={() => setSelectedChat(chat)}
-                                className={`w-full p-4 flex items-center gap-3 hover:bg-muted transition-colors border-b ${selectedChat?.id === chat.id ? 'bg-muted' : ''
-                                    }`}
-                            >
-                                <div className="relative">
-                                    <Avatar fallback={chat.avatar} size="md" />
-                                    {chat.online && (
-                                        <div className="absolute bottom-0 right-0 h-3 w-3 bg-success-green rounded-full border-2 border-white" />
-                                    )}
-                                </div>
-                                <div className="flex-1 text-left">
-                                    <div className="flex justify-between items-start mb-1">
-                                        <span className="font-medium">{chat.name}</span>
-                                        <span className="text-xs text-muted-foreground">{chat.time}</span>
-                                    </div>
-                                    <p className="text-sm text-muted-foreground truncate">{chat.lastMessage}</p>
-                                </div>
-                                {chat.unread > 0 && (
-                                    <div className="bg-campus-blue text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
-                                        {chat.unread}
-                                    </div>
-                                )}
-                            </button>
-                        ))}
+                        {loading ? (
+                            <div className="p-4 text-center text-muted-foreground">Loading chats...</div>
+                        ) : conversations.length === 0 ? (
+                            <div className="p-4 text-center text-muted-foreground">No conversations yet</div>
+                        ) : (
+                            conversations.map((chat) => {
+                                const otherUser = getOtherParticipant(chat);
+                                return (
+                                    <button
+                                        key={chat._id}
+                                        onClick={() => handleChatSelect(chat)}
+                                        className={`w-full p-4 flex items-center gap-3 hover:bg-muted transition-colors border-b ${selectedChat?._id === chat._id ? 'bg-muted' : ''
+                                            }`}
+                                    >
+                                        <div className="relative">
+                                            <Avatar fallback={otherUser.name?.[0] || '?'} size="md" />
+                                            {/* Online status logic could go here */}
+                                        </div>
+                                        <div className="flex-1 text-left">
+                                            <div className="flex justify-between items-start mb-1">
+                                                <span className="font-medium">{otherUser.name || 'User'}</span>
+                                                <span className="text-xs text-muted-foreground">
+                                                    {chat.lastMessageAt ? new Date(chat.lastMessageAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}
+                                                </span>
+                                            </div>
+                                            <p className="text-sm text-muted-foreground truncate">
+                                                {chat.lastMessage?.content || 'No messages yet'}
+                                            </p>
+                                        </div>
+                                    </button>
+                                );
+                            })
+                        )}
                     </div>
                 </Card>
 
@@ -110,16 +127,11 @@ const Chat = () => {
                             <div className="p-4 border-b flex items-center justify-between">
                                 <div className="flex items-center gap-3">
                                     <div className="relative">
-                                        <Avatar fallback={selectedChat.avatar} size="md" />
-                                        {selectedChat.online && (
-                                            <div className="absolute bottom-0 right-0 h-3 w-3 bg-success-green rounded-full border-2 border-white" />
-                                        )}
+                                        <Avatar fallback={getOtherParticipant(selectedChat).name?.[0] || '?'} size="md" />
+                                        {/* Online status stub */}
                                     </div>
                                     <div>
-                                        <h3 className="font-semibold">{selectedChat.name}</h3>
-                                        <p className="text-xs text-muted-foreground">
-                                            {selectedChat.online ? 'Online' : 'Offline'}
-                                        </p>
+                                        <h3 className="font-semibold">{getOtherParticipant(selectedChat).name || 'User'}</h3>
                                     </div>
                                 </div>
                                 <Button variant="ghost" size="icon">
@@ -129,29 +141,32 @@ const Chat = () => {
 
                             {/* Messages */}
                             <div className="flex-1 overflow-y-auto p-4 space-y-4">
-                                {messages.map((msg) => (
-                                    <div
-                                        key={msg.id}
-                                        className={`flex ${msg.sender === 'me' ? 'justify-end' : 'justify-start'}`}
-                                    >
+                                {messages.map((msg) => {
+                                    const isMe = msg.sender === user?._id;
+                                    return (
                                         <div
-                                            className={`max-w-[70%] rounded-2xl px-4 py-2 ${msg.sender === 'me'
+                                            key={msg._id}
+                                            className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}
+                                        >
+                                            <div
+                                                className={`max-w-[70%] rounded-2xl px-4 py-2 ${isMe
                                                     ? 'bg-campus-blue text-white'
                                                     : 'bg-muted'
-                                                }`}
-                                        >
-                                            <p className="text-sm">{msg.text}</p>
-                                            <div className="flex items-center gap-1 justify-end mt-1">
-                                                <span className={`text-xs ${msg.sender === 'me' ? 'text-blue-100' : 'text-muted-foreground'}`}>
-                                                    {msg.time}
-                                                </span>
-                                                {msg.sender === 'me' && (
-                                                    <CheckCheck size={14} className="text-blue-100" />
-                                                )}
+                                                    }`}
+                                            >
+                                                <p className="text-sm">{msg.content}</p>
+                                                <div className="flex items-center gap-1 justify-end mt-1">
+                                                    <span className={`text-xs ${isMe ? 'text-blue-100' : 'text-muted-foreground'}`}>
+                                                        {new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                                    </span>
+                                                    {isMe && (
+                                                        <CheckCheck size={14} className="text-blue-100" />
+                                                    )}
+                                                </div>
                                             </div>
                                         </div>
-                                    </div>
-                                ))}
+                                    );
+                                })}
                             </div>
 
                             {/* Input */}

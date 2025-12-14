@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Package, Heart, TrendingUp, DollarSign, Plus, Eye, ShoppingBag, Clock, Star } from 'lucide-react';
+import { Package, Heart, TrendingUp, DollarSign, Plus, Eye, ShoppingBag, Clock, Star, IndianRupee } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-import { mockApi } from '../api/mockApi';
+import { getListings } from '../api/listings';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/Card';
 import Button from '../components/ui/Button';
 import ProductCard from '../components/marketplace/ProductCard';
@@ -28,7 +28,7 @@ const Dashboard = () => {
 
     const fetchDashboardData = async () => {
         try {
-            const allProducts = await mockApi.getProducts();
+            const allProducts = await getListings();
 
             // Get user's listings
             const userListings = allProducts.filter(p => p.seller.email === user?.email);
@@ -118,7 +118,7 @@ const Dashboard = () => {
                         <Card>
                             <CardContent className="p-6">
                                 <div className="flex items-center justify-between mb-2">
-                                    <DollarSign className="h-8 w-8 text-campus-gold" />
+                                    <IndianRupee className="h-8 w-8 text-campus-gold" />
                                 </div>
                                 <div className="text-2xl font-bold">₹{stats.totalEarnings}</div>
                                 <p className="text-xs text-muted-foreground">Total Value</p>
