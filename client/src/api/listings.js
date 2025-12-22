@@ -19,13 +19,8 @@ export const getListingById = async (id) => {
 
 // Supports both JSON and FormData
 export const createListing = async (listingData) => {
-    // axios automatically sets Content-Type to multipart/form-data when body is FormData
-    // BUT our axiosClient defaults to application/json, so we must override it.
-    const { data } = await axiosClient.post('/listings', listingData, {
-        headers: {
-            "Content-Type": "multipart/form-data",
-        },
-    });
+    // Axios handles FormData Content-Type + boundary automatically
+    const { data } = await axiosClient.post('/listings', listingData);
     return data;
 };
 
@@ -41,12 +36,8 @@ export const deleteListing = async (id) => {
 
 
 export const updateListing = async (id, listingData) => {
-    // Force multipart if it's FormData, though typically axios handles it if data is FormData.
-    // However, our axiosClient might have defaults. Best to be explicit if we know we are sending files.
-    const isFormData = listingData instanceof FormData;
-    const config = isFormData ? { headers: { "Content-Type": "multipart/form-data" } } : {};
-
-    const { data } = await axiosClient.put(`/listings/${id}`, listingData, config);
+    // Allow axios to set Content-Type with boundary automatically for FormData
+    const { data } = await axiosClient.put(`/listings/${id}`, listingData);
     return data;
 };
 

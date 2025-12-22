@@ -6,6 +6,7 @@ import Button from '../ui/Button';
 import Avatar from '../ui/Avatar';
 import SearchBar from '../ui/SearchBar';
 import LoginOnboardingModal from '../auth/LoginOnboardingModal';
+import NotificationBell from '../common/NotificationBell';
 import { cn } from '../../lib/utils';
 
 const Header = () => {
@@ -68,9 +69,8 @@ const Header = () => {
                                             <span className="absolute top-2 right-2 h-2.5 w-2.5 bg-danger-red border-2 border-white rounded-full"></span>
                                         </Button>
                                     </Link>
-                                    <Button variant="ghost" size="icon" className="text-gray-500 hover:text-campus-blue hover:bg-blue-50 rounded-full" title="Notifications">
-                                        <Bell size={22} />
-                                    </Button>
+
+                                    <NotificationBell />
                                 </div>
 
                                 <div className="h-8 w-px bg-gray-200 mx-1"></div>

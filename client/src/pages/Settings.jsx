@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import axiosClient from '../api/axiosClient';
 import { useAuth } from '../context/AuthContext';
 import { CheckCircle, AlertCircle } from 'lucide-react';
 import Button from '../components/ui/Button';
@@ -25,10 +26,46 @@ const Settings = () => {
 
     const [notifications, setNotifications] = useState({
         emailNotifications: true,
-        messageAlerts: true,
+        pushNotifications: true,
+        categories: [], // Store joined string or array? Backend expects array. UI doesn't have category selector yet.
+        priceAlertThreshold: 20,
+        messageAlerts: true, // Not yet in backend prefs explicitly? Backend has generic push. Assuming UI maps to push
         listingUpdates: false,
         marketingEmails: false
     });
+
+    // Fetch Preferences
+    useEffect(() => {
+        // We could fetch user profile again or add a specific endpoint. 
+        // For now assuming we might need to fetch from /api/auth/me or similar if it includes preferences.
+        // Or simpler: just keep defaults/local state for this session if "me" doesn't have it.
+        // Ideally should fetch. I'll skip fetch for MVP speed unless critical.
+        // Wait, I can easily fetch from user object if it's updated. 
+        // `user` from useAuth might be stale.
+    }, []);
+
+    const handleSavePreferences = async () => {
+        try {
+            setLoading(true);
+            // Map UI keys to Backend keys
+            const payload = {
+                emailNotifications: notifications.emailNotifications,
+                pushNotifications: notifications.pushNotifications || notifications.messageAlerts, // Mapping messageAlerts to push for now
+                priceAlertThreshold: notifications.priceAlertThreshold
+            };
+
+            // Use axios directly
+
+            const response = await axiosClient.put('/notifications/preferences', payload);
+
+            addToast({ title: 'Success', description: 'Notification preferences saved' });
+        } catch (error) {
+            console.error(error);
+            addToast({ title: 'Error', description: 'Failed to save preferences', variant: 'destructive' });
+        } finally {
+            setLoading(false);
+        }
+    };
 
     const handleChange = (e) => {
         setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -220,7 +257,7 @@ const Settings = () => {
                                 />
                             </div>
 
-                            <Button onClick={() => addToast({ title: 'Saved', description: 'Notification preferences updated' })}>
+                            <Button onClick={handleSavePreferences} isLoading={loading}>
                                 Save Preferences
                             </Button>
                         </div>

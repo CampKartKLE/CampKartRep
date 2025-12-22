@@ -84,10 +84,28 @@ router.post('/messages', protect, async (req, res) => {
         });
 
         // Update conversation with last message
-        await Conversation.findByIdAndUpdate(conversationId, {
+        const conversation = await Conversation.findByIdAndUpdate(conversationId, {
             lastMessage: newMessage._id,
             lastMessageAt: Date.now()
-        });
+        }, { new: true });
+
+        // Notification Trigger: New Message
+        try {
+            const notificationService = require("../services/notificationService");
+            const recipientId = conversation.participants.find(p => p.toString() !== req.user.id.toString());
+
+            if (recipientId) {
+                await notificationService.sendNotification(
+                    recipientId,
+                    "message",
+                    `New message from ${req.user.name}`,
+                    content.substring(0, 50) + (content.length > 50 ? "..." : ""),
+                    { conversationId, senderId: req.user.id }
+                );
+            }
+        } catch (notifErr) {
+            console.error("Message Notification Error:", notifErr);
+        }
 
         res.json(newMessage);
     } catch (err) {

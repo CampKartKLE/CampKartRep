@@ -1,5 +1,9 @@
 require("dotenv").config();
 const express = require("express");
+// ... imports
+
+// Init Cron
+require("./cron/trending").init();
 const cors = require("cors");
 const morgan = require("morgan");
 const helmet = require("helmet");
@@ -35,6 +39,7 @@ app.use("/api/listings", require("./routes/listingRoutes"));
 app.use("/api/reports", require("./routes/reportRoutes"));
 app.use("/api/messages", require("./routes/messageRoutes"));
 app.use("/api/users", require("./routes/userRoutes"));
+app.use("/api/notifications", require("./routes/notificationRoutes"));
 
 app.get("/", (req, res) => {
   res.send("CampKart Server Running...");
@@ -50,4 +55,26 @@ app.use((err, req, res, next) => {
 });
 
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
+
+// Socket.io Integration
+const http = require('http');
+const server = http.createServer(app);
+const io = require('./socket').init(server);
+
+io.on('connection', (socket) => {
+  console.log('Socket Client connected:', socket.id);
+
+  // User joins their own room for private notifications
+  socket.on('join', (userId) => {
+    if (userId) {
+      socket.join(userId);
+      console.log(`User ${userId} joined notification room`);
+    }
+  });
+
+  socket.on('disconnect', () => {
+    console.log('Socket Client disconnected');
+  });
+});
+
+server.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));

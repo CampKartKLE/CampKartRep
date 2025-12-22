@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Upload, X, AlertCircle } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-import { createListing } from '../api/listings'; // Use real API
+import { createListing, updateListing, getListingById } from '../api/listings'; // Use real API
 import Button from '../components/ui/Button';
 import Input from '../components/ui/Input';
 import Select from '../components/ui/Select';
@@ -49,6 +49,49 @@ const Sell = () => {
             }
         }
     }, [isAuthenticated]);
+
+    // Fetch existing data if in Edit mode
+    useEffect(() => {
+        const fetchListingData = async () => {
+            if (!editId) return;
+
+            try {
+                setLoading(true);
+                const data = await getListingById(editId);
+                const listing = data.listing || data;
+
+                setFormData({
+                    title: listing.title || '',
+                    category: listing.category || '',
+                    price: listing.price || '',
+                    condition: listing.condition || '',
+                    description: listing.description || '',
+                    location: listing.location || '',
+                    images: [],
+                    imageUrlInput: '',
+                    termsAccepted: false
+                });
+
+                if (listing.images && listing.images.length > 0) {
+                    const existingImages = listing.images.map(url => ({
+                        type: 'url',
+                        url: url,
+                        preview: url
+                    }));
+                    setImageItems(existingImages);
+                }
+            } catch (err) {
+                console.error("Failed to fetch listing for edit:", err);
+                addToast({ title: 'Error', description: 'Failed to load listing details', variant: 'destructive' });
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        if (isAuthenticated && editId) {
+            fetchListingData();
+        }
+    }, [editId, isAuthenticated, addToast]);
 
     const handleChange = (e) => {
         const { name, value, type, checked } = e.target;

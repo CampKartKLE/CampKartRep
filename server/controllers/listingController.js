@@ -110,6 +110,27 @@ exports.createListing = async (req, res) => {
       isAvailable: true,
     });
 
+    // ----------------------------------------------------------------
+    // Notification Trigger: New Listing in Category
+    // ----------------------------------------------------------------
+    try {
+      const notificationService = require("../services/notificationService");
+      const interestedUsers = await notificationService.findUsersInterestedIn(category);
+
+      if (interestedUsers.length > 0) {
+        await notificationService.sendBulkNotification(
+          interestedUsers,
+          "new_listing",
+          "📚 New Listing Alert!",
+          `New in ${category}: ${title} for ₹${price}`,
+          { listingId: newListing._id, category, price }
+        );
+      }
+    } catch (notifError) {
+      console.error("Notification Trigger Error:", notifError);
+      // Don't fail the request just because notification failed
+    }
+
     res.status(201).json({ success: true, listing: newListing });
   } catch (err) {
     console.error("CreateListing error:", err);
@@ -148,6 +169,35 @@ exports.updateListing = async (req, res) => {
     const updated = await Listing.findByIdAndUpdate(req.params.id, updateData, {
       new: true,
     });
+
+    // ----------------------------------------------------------------
+    // Notification Trigger: Price Drop
+    // ----------------------------------------------------------------
+    if (req.body.price) {
+      const newPrice = Number(req.body.price);
+
+      if (newPrice < listing.price) {
+        try {
+          const notificationService = require("../services/notificationService");
+          const interestedUsers = await notificationService.findUsersWithWishlist(listing._id);
+
+          if (interestedUsers.length > 0) {
+            const dropAmount = listing.price - newPrice;
+            const dropPercent = Math.round((dropAmount / listing.price) * 100);
+
+            await notificationService.sendBulkNotification(
+              interestedUsers,
+              "price_drop",
+              "💰 Price Drop Alert!",
+              `${listing.title} is now ₹${newPrice} (was ₹${listing.price}). ${dropPercent}% Off!`,
+              { listingId: listing._id, price: newPrice, oldPrice: listing.price }
+            );
+          }
+        } catch (notifErr) {
+          console.error("Price Drop Notification Error:", notifErr);
+        }
+      }
+    }
 
     res.json(updated);
   } catch (err) {
