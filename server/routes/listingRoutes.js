@@ -25,8 +25,13 @@ const upload = multer({ storage });
 // ------------------------
 // Listing Routes
 // ------------------------
+const optionalAuth = require("../middleware/optionalAuth");
+
+// ------------------------
+// Listing Routes
+// ------------------------
 router.get("/", listingController.getAllListings);
-router.get("/:id", listingController.getListingById);
+router.get("/:id", optionalAuth, listingController.getListingById);
 
 router.post("/", authMiddleware, upload.array("images", 5), listingController.createListing);
 

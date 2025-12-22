@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { MapPin, Clock, Heart, Share2, Flag, MessageCircle, CheckCircle, ChevronLeft, ChevronRight } from 'lucide-react';
+import { MapPin, Clock, Heart, Share2, Flag, MessageCircle, CheckCircle, ChevronLeft, ChevronRight, Eye } from 'lucide-react';
 import { getListingById } from '../api/listings'; // Use real API
 import { startConversation, sendMessage } from '../api/messages'; // Use real API
 import { useAuth } from '../context/AuthContext';
@@ -205,7 +205,10 @@ const ItemDetail = () => {
                             <Clock size={16} />
                             <span>Posted {new Date(product.createdAt).toLocaleDateString()}</span>
                         </div>
-                        {/* <span>{product.views} views</span> */}
+                        <div className="flex items-center gap-1 text-campus-blue font-medium">
+                            <Eye size={16} />
+                            <span>{product.views} views</span>
+                        </div>
                     </div>
 
                     {/* Seller Card */}
