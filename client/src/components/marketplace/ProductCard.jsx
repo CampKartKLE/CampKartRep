@@ -5,7 +5,7 @@ import { Card } from '../ui/Card';
 import Badge from '../ui/Badge';
 import StarRating from '../ui/StarRating';
 
-const ProductCard = ({ product, onSave, onDelete }) => {
+const ProductCard = ({ product, onSave, onDelete, isFavorite, onToggleFavorite }) => {
 
     // SAFE ID (MongoDB uses _id)
     const productId = product._id;
@@ -59,10 +59,17 @@ const ProductCard = ({ product, onSave, onDelete }) => {
                     </div>
 
                     <button
-                        onClick={(e) => { e.preventDefault(); onSave?.(productId); }}
-                        className="absolute top-2 left-2 p-2 bg-white/90 backdrop-blur-sm rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-white"
+                        onClick={(e) => {
+                            e.preventDefault();
+                            if (onToggleFavorite) onToggleFavorite(productId);
+                            else if (onSave) onSave(productId);
+                        }}
+                        className={`absolute top-2 left-2 p-2 rounded-full transition-all hover:scale-110 ${isFavorite
+                            ? 'bg-red-500 text-white opacity-100'
+                            : 'bg-white/90 backdrop-blur-sm opacity-0 group-hover:opacity-100 hover:bg-white text-gray-700'
+                            }`}
                     >
-                        <Heart size={16} className="text-gray-700" />
+                        <Heart size={16} className={isFavorite ? "fill-current" : ""} />
                     </button>
                 </div>
 

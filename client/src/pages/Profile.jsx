@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
 import { Package, Heart, Settings, Edit, Trash2, CheckCircle } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-import { getListings, deleteListing } from '../api/listings';
+import { getListings, deleteListing, getWishlist, toggleWishlist } from '../api/listings';
 import Avatar from '../components/ui/Avatar';
 import Button from '../components/ui/Button';
 import Badge from '../components/ui/Badge';
@@ -21,7 +21,7 @@ const Profile = () => {
 
     useEffect(() => {
         fetchData();
-    }, []);
+    }, [activeTab]);
 
     const fetchData = async () => {
         try {
@@ -33,9 +33,13 @@ const Profile = () => {
             );
             setMyListings(userProducts);
 
-            // Mock saved items from localStorage
-            const saved = JSON.parse(localStorage.getItem('saved_items') || '[]');
-            setSavedItems(allProducts.filter(p => saved.includes(p.id || p._id)));
+            setMyListings(userProducts);
+
+            // Fetch real saved items
+            if (activeTab === 'saved') {
+                const wishlistData = await getWishlist();
+                setSavedItems(wishlistData);
+            }
         } catch (error) {
             console.error(error);
         } finally {
@@ -53,6 +57,17 @@ const Profile = () => {
                 console.error("Delete failed", error);
                 addToast({ title: 'Error', description: 'Failed to delete listing', variant: 'destructive' });
             }
+        }
+    };
+
+    const handleRemoveFromWishlist = async (id) => {
+        try {
+            await toggleWishlist(id);
+            setSavedItems(savedItems.filter(item => item._id !== id));
+            addToast({ title: 'Removed', description: 'Item removed from saved list' });
+        } catch (error) {
+            console.error("Remove failed", error);
+            addToast({ title: 'Error', description: 'Failed to update wishlist', variant: 'destructive' });
         }
     };
 
@@ -162,7 +177,12 @@ const Profile = () => {
                             {savedItems.length > 0 ? (
                                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                                     {savedItems.map((item) => (
-                                        <ProductCard key={item.id} product={item} />
+                                        <ProductCard
+                                            key={item._id}
+                                            product={item}
+                                            isFavorite={true}
+                                            onToggleFavorite={handleRemoveFromWishlist}
+                                        />
                                     ))}
                                 </div>
                             ) : (

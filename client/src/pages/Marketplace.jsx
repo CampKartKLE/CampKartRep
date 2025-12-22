@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { SlidersHorizontal, Grid, List } from 'lucide-react';
-import { getListings, deleteListing } from '../api/listings';
+import { getListings, deleteListing, toggleWishlist } from '../api/listings';
 import { useAuth } from '../context/AuthContext';
 import ProductCard from '../components/marketplace/ProductCard';
 import FilterPanel from '../components/marketplace/FilterPanel';
@@ -16,7 +16,7 @@ const Marketplace = () => {
     const [showFilters, setShowFilters] = useState(false);
     const [viewMode, setViewMode] = useState('grid');
     const { addToast } = useToast();
-    const { user } = useAuth();
+    const { user, refreshUser } = useAuth();
 
     const [filters, setFilters] = useState({
         search: searchParams.get('search') || '',
@@ -78,8 +78,26 @@ const Marketplace = () => {
         setSearchParams({});
     };
 
-    const handleSave = (productId) => {
-        addToast({ title: 'Saved', description: 'Item added to your saved list' });
+    const handleToggleWishlist = async (productId) => {
+        if (!user) {
+            addToast({ title: 'Login Required', description: 'Please login to save items', variant: 'destructive' });
+            return;
+        }
+
+        try {
+            const response = await toggleWishlist(productId);
+            // Result: { success: true, wishlist: [...], isFavorited: boolean }
+
+            // Refresh user to get updated wishlist in context
+            await refreshUser();
+
+            addToast({
+                title: response.isFavorited ? 'Added to Wishlist' : 'Removed from Wishlist',
+                description: response.isFavorited ? 'Item saved successfully' : 'Item removed from saved list'
+            });
+        } catch (error) {
+            addToast({ title: 'Error', description: 'Failed to update wishlist', variant: 'destructive' });
+        }
     };
 
     return (
@@ -165,7 +183,8 @@ const Marketplace = () => {
                                         ...product,
                                         isOwner: product.seller?.id === user?.id
                                     }}
-                                    onSave={handleSave}
+                                    isFavorite={user?.wishlist?.includes(product._id)}
+                                    onToggleFavorite={handleToggleWishlist}
                                     onDelete={handleDelete}
                                 />
                             ))}

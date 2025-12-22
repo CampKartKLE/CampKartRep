@@ -39,7 +39,18 @@ export const deleteListing = async (id) => {
     return data;
 };
 
+
 export const updateListing = async (id, listingData) => {
     const { data } = await axiosClient.put(`/listings/${id}`, listingData);
+    return data;
+};
+
+export const toggleWishlist = async (id) => {
+    const { data } = await axiosClient.post(`/users/wishlist/${id}`);
+    return data;
+};
+
+export const getWishlist = async () => {
+    const { data } = await axiosClient.get('/users/wishlist');
     return data;
 };

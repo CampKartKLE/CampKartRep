@@ -37,7 +37,7 @@ const Dashboard = () => {
             // Calculate stats
             const activeListings = userListings.length;
             const soldListings = 0; // Mock for now
-            const savedItems = JSON.parse(localStorage.getItem('saved_items') || '[]').length;
+            const savedItems = user?.wishlist?.length || 0;
             const totalEarnings = userListings.reduce((sum, item) => sum + item.price, 0);
 
             setStats({

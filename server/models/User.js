@@ -8,6 +8,7 @@ const userSchema = new mongoose.Schema(
     campus: { type: String },
     password: { type: String, required: true },
     isVerifiedStudent: { type: Boolean, default: false },
+    wishlist: [{ type: mongoose.Schema.Types.ObjectId, ref: "Listing" }],
   },
   { timestamps: true }
 );
