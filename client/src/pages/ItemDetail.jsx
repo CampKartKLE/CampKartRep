@@ -126,12 +126,16 @@ const ItemDetail = () => {
                 <div className="lg:col-span-2">
                     <div className="sticky top-20">
                         {/* Main Image */}
-                        <div className="relative aspect-square bg-muted rounded-xl overflow-hidden mb-4">
-                            <img
-                                src={product.images && product.images[currentImageIndex] ? product.images[currentImageIndex] : 'https://placehold.co/600x400?text=No+Image'}
-                                alt={product.title}
-                                className="w-full h-full object-cover"
-                            />
+                        <div className="relative aspect-square bg-muted rounded-xl overflow-hidden mb-4 flex items-center justify-center">
+                            {product.images && product.images[currentImageIndex] ? (
+                                <img
+                                    src={product.images[currentImageIndex]}
+                                    alt={product.title}
+                                    className="w-full h-full object-cover"
+                                />
+                            ) : (
+                                <span className="text-muted-foreground">No Image Available</span>
+                            )}
                             {product.images && product.images.length > 1 && (
                                 <>
                                     <button
@@ -208,7 +212,6 @@ const ItemDetail = () => {
                     <div className="bg-muted/50 rounded-xl p-4">
                         <h3 className="font-semibold mb-3">Seller Information</h3>
                         <div className="flex items-center gap-3 mb-4">
-                            {/* Check if seller is populated, otherwise handle gracefully */}
                             <Avatar fallback={product.seller?.name?.[0] || '?'} size="lg" />
                             <div className="flex-1">
                                 <div className="flex items-center gap-2">
@@ -217,7 +220,6 @@ const ItemDetail = () => {
                                         <CheckCircle size={16} className="text-blue-500" />
                                     )}
                                 </div>
-                                {/* <p className="text-sm text-muted-foreground">Member since 2023</p> */}
                             </div>
                         </div>
                         <Button className="w-full" onClick={handleContactSeller}>

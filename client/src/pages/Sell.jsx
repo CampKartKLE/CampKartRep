@@ -69,7 +69,8 @@ const Sell = () => {
 
 
     // Unified Image State Manager
-    const [imageItems, setImageItems] = useState([]); // { type: 'file', file: File, preview: string } | { type: 'url', url: string, preview: string }
+    // Keeping imageItems for preview, but strictly files only now as per request.
+    const [imageItems, setImageItems] = useState([]); // { type: 'file', file: File, preview: string }
 
     const handleFileSelect = (e) => {
         const newFiles = Array.from(e.target.files);
@@ -92,17 +93,6 @@ const Sell = () => {
         });
         setImageItems(prev => [...prev, ...newItems]);
         setFileInputKey(Date.now()); // reset input
-    };
-
-    const handleAddImageUrl = () => {
-        if (formData.imageUrlInput && imageItems.length < 5) {
-            if (!formData.imageUrlInput.match(/^https?:\/\/.+/)) {
-                addToast({ title: 'Invalid URL', description: 'Please enter a valid image URL.', variant: 'destructive' });
-                return;
-            }
-            setImageItems(prev => [...prev, { type: 'url', url: formData.imageUrlInput, preview: formData.imageUrlInput }]);
-            setFormData(prev => ({ ...prev, imageUrlInput: '' }));
-        }
     };
 
     const removeImageItem = (index) => {
@@ -152,33 +142,35 @@ const Sell = () => {
             submitData.append('description', formData.description);
             submitData.append('location', formData.location);
 
-            // Separate new files from existing URLs
+            // Separate new files from existing URLs (from edit mode)
             const newFiles = imageItems.filter(i => i.type === 'file');
+            // If editing, we might have existing URLs loaded.
             const existingUrls = imageItems.filter(i => i.type === 'url').map(i => i.url);
 
             // Append new files
             newFiles.forEach(item => submitData.append('images', item.file));
 
-            // Append existing URLs - Backend needs to handle this.
-            // If backend replaces `images` array, we must send ALL desired images.
-            // But we can't send "files" for existing URLs.
-            // We should send `existingImages` array in body.
+            // Append existing URLs for backend to preserve
             existingUrls.forEach(url => submitData.append('existingImages', url));
 
             let response;
             if (editId) {
+                // Update
                 response = await updateListing(editId, submitData);
                 addToast({ title: 'Updated!', description: 'Listing updated successfully' });
                 navigate(`/item/${response._id}`);
             } else {
+                // Create
                 if (newFiles.length === 0) {
-                    addToast({ title: 'Upload Required', description: 'Please upload at least one image.', variant: 'destructive' });
+                    addToast({ title: 'Upload Required', description: 'Please upload at least one photo.', variant: 'destructive' });
                     setLoading(false);
                     return;
                 }
                 response = await createListing(submitData);
                 addToast({ title: 'Success!', description: 'Your listing is now live' });
-                navigate(`/item/${response.listing._id}`);
+                // Response structure might vary, check controller
+                const newId = response.listing ? response.listing._id : response._id;
+                navigate(`/item/${newId}`);
             }
 
             localStorage.removeItem('sell_form_draft');
@@ -255,7 +247,6 @@ const Sell = () => {
                                     onChange={handleChange}
                                     placeholder="500"
                                     min="100"
-                                    max="50000"
                                     required
                                 />
                             </div>

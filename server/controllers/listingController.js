@@ -27,7 +27,16 @@ exports.getAllListings = async (req, res) => {
     if (location)
       query.location = { $regex: location, $options: "i" };
 
-    const listings = await Listing.find(query).sort({ createdAt: -1 });
+    // Sorting
+    let sortOption = { createdAt: -1 }; // default: newest
+    const { sort } = req.query;
+
+    if (sort === "price_asc") sortOption = { price: 1 };
+    else if (sort === "price_desc") sortOption = { price: -1 };
+    else if (sort === "popular") sortOption = { views: -1 };
+    else if (sort === "newest") sortOption = { createdAt: -1 };
+
+    const listings = await Listing.find(query).sort(sortOption);
 
     res.json(listings);
   } catch (err) {
@@ -44,8 +53,18 @@ exports.getListingById = async (req, res) => {
     const listing = await Listing.findById(req.params.id);
     if (!listing) return res.status(404).json({ message: "Listing not found" });
 
-    listing.views += 1;
-    await listing.save();
+    // Unique View Tracking
+    // Identifier: User ID (if auth) or IP address
+    const viewerId = req.user ? req.user.id : req.ip;
+
+    // Initialize viewedBy if it doesn't exist (compatibility)
+    if (!listing.viewedBy) listing.viewedBy = [];
+
+    if (!listing.viewedBy.includes(viewerId)) {
+      listing.viewedBy.push(viewerId);
+      listing.views += 1;
+      await listing.save();
+    }
 
     res.json(listing);
   } catch (err) {

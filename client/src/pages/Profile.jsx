@@ -33,7 +33,7 @@ const Profile = () => {
             );
             setMyListings(userProducts);
 
-            setMyListings(userProducts);
+
 
             // Fetch real saved items
             if (activeTab === 'saved') {

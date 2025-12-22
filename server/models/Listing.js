@@ -67,6 +67,9 @@ const listingSchema = new mongoose.Schema(
       default: 0,
     },
 
+    // For tracking unique views
+    viewedBy: [String],
+
     isAvailable: {
       type: Boolean,
       default: true,

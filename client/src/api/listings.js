@@ -41,7 +41,12 @@ export const deleteListing = async (id) => {
 
 
 export const updateListing = async (id, listingData) => {
-    const { data } = await axiosClient.put(`/listings/${id}`, listingData);
+    // Force multipart if it's FormData, though typically axios handles it if data is FormData.
+    // However, our axiosClient might have defaults. Best to be explicit if we know we are sending files.
+    const isFormData = listingData instanceof FormData;
+    const config = isFormData ? { headers: { "Content-Type": "multipart/form-data" } } : {};
+
+    const { data } = await axiosClient.put(`/listings/${id}`, listingData, config);
     return data;
 };
 

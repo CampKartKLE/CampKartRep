@@ -35,10 +35,13 @@ const Dashboard = () => {
             setMyListings(userListings.slice(0, 3));
 
             // Calculate stats
+            // Calculate stats
             const activeListings = userListings.length;
-            const soldListings = 0; // Mock for now
+            // TODO: Implement real order/sold tracking in backend
+            const soldListings = 0;
             const savedItems = user?.wishlist?.length || 0;
-            const totalEarnings = userListings.reduce((sum, item) => sum + item.price, 0);
+            // "Total Value" represents the total price of currently active listings
+            const totalEarnings = userListings.reduce((sum, item) => sum + (Number(item.price) || 0), 0);
 
             setStats({
                 activeListings,
@@ -54,12 +57,8 @@ const Dashboard = () => {
                 .slice(0, 4);
             setRecommendedItems(recommended);
 
-            // Mock recent activity
-            setRecentActivity([
-                { type: 'view', text: 'Someone viewed your "Engineering Textbook"', time: '2h ago' },
-                { type: 'message', text: 'New message from Priya about "Calculator"', time: '5h ago' },
-                { type: 'listing', text: 'You posted "Study Lamp"', time: '1d ago' }
-            ]);
+            // Real activity logs would require a backend endpoint
+            setRecentActivity([]); // Empty for now, don't show fake stuff
 
         } catch (error) {
             console.error('Failed to load dashboard data:', error);
@@ -162,17 +161,21 @@ const Dashboard = () => {
                         </CardHeader>
                         <CardContent>
                             <div className="space-y-4">
-                                {recentActivity.map((activity, idx) => (
-                                    <div key={idx} className="flex items-start gap-3 pb-3 border-b last:border-0">
-                                        <div className="p-2 bg-muted rounded-lg">
-                                            <Clock size={16} className="text-muted-foreground" />
+                                {recentActivity.length > 0 ? (
+                                    recentActivity.map((activity, idx) => (
+                                        <div key={idx} className="flex items-start gap-3 pb-3 border-b last:border-0">
+                                            <div className="p-2 bg-muted rounded-lg">
+                                                <Clock size={16} className="text-muted-foreground" />
+                                            </div>
+                                            <div className="flex-1">
+                                                <p className="text-sm">{activity.text}</p>
+                                                <p className="text-xs text-muted-foreground mt-1">{activity.time}</p>
+                                            </div>
                                         </div>
-                                        <div className="flex-1">
-                                            <p className="text-sm">{activity.text}</p>
-                                            <p className="text-xs text-muted-foreground mt-1">{activity.time}</p>
-                                        </div>
-                                    </div>
-                                ))}
+                                    ))
+                                ) : (
+                                    <p className="text-sm text-muted-foreground text-center py-4">No recent activity</p>
+                                )}
                             </div>
                         </CardContent>
                     </Card>
