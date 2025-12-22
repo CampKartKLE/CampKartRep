@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { SlidersHorizontal, Grid, List } from 'lucide-react';
-import { getListings } from '../api/listings';
+import { getListings, deleteListing } from '../api/listings';
+import { useAuth } from '../context/AuthContext';
 import ProductCard from '../components/marketplace/ProductCard';
 import FilterPanel from '../components/marketplace/FilterPanel';
 import Button from '../components/ui/Button';
@@ -15,6 +16,7 @@ const Marketplace = () => {
     const [showFilters, setShowFilters] = useState(false);
     const [viewMode, setViewMode] = useState('grid');
     const { addToast } = useToast();
+    const { user } = useAuth();
 
     const [filters, setFilters] = useState({
         search: searchParams.get('search') || '',
@@ -28,7 +30,14 @@ const Marketplace = () => {
 
     useEffect(() => {
         fetchProducts();
-    }, [filters]);
+    }, [
+        filters.search,
+        filters.category,
+        filters.minPrice,
+        filters.maxPrice,
+        filters.condition,
+        filters.sort
+    ]);
 
     const fetchProducts = async () => {
         setLoading(true);
@@ -39,6 +48,16 @@ const Marketplace = () => {
             addToast({ title: 'Error', description: 'Failed to load products', variant: 'destructive' });
         } finally {
             setLoading(false);
+        }
+    };
+
+    const handleDelete = async (id) => {
+        try {
+            await deleteListing(id);
+            setProducts(prev => prev.filter(p => p._id !== id));
+            addToast({ title: "Deleted", description: "Listing removed" });
+        } catch {
+            addToast({ title: "Error", description: "Delete failed", variant: "destructive" });
         }
     };
 
@@ -140,7 +159,15 @@ const Marketplace = () => {
                             : 'grid-cols-1'
                             }`}>
                             {products.map((product) => (
-                                <ProductCard key={product.id} product={product} onSave={handleSave} />
+                                <ProductCard
+                                    key={product._id}
+                                    product={{
+                                        ...product,
+                                        isOwner: product.seller?.id === user?.id
+                                    }}
+                                    onSave={handleSave}
+                                    onDelete={handleDelete}
+                                />
                             ))}
                         </div>
                     ) : (

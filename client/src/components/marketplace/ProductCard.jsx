@@ -1,14 +1,14 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { MapPin, Clock, Heart, CheckCircle } from 'lucide-react';
+import { MapPin, Clock, Heart, CheckCircle, Trash2 } from 'lucide-react';
 import { Card } from '../ui/Card';
 import Badge from '../ui/Badge';
 import StarRating from '../ui/StarRating';
 
-const ProductCard = ({ product, onSave }) => {
+const ProductCard = ({ product, onSave, onDelete }) => {
 
     // SAFE ID (MongoDB uses _id)
-    const productId = product._id || product.id;
+    const productId = product._id;
 
     // Fallback Image
     const imageUrl =
@@ -40,7 +40,7 @@ const ProductCard = ({ product, onSave }) => {
     };
 
     return (
-        <Card className="group overflow-hidden transition-all duration-300 hover:shadow-card-hover">
+        <Card className="group overflow-hidden transition-all duration-300 hover:shadow-card-hover relative">
             <Link to={`/item/${productId}`}>
                 {/* IMAGE */}
                 <div className="relative aspect-square overflow-hidden bg-muted">
@@ -96,16 +96,31 @@ const ProductCard = ({ product, onSave }) => {
                     </div>
 
                     {/* SELLER */}
-                    <div className="flex items-center gap-2 mt-3 pt-3 border-t">
-                        <div className="h-6 w-6 rounded-full bg-campus-blue/10 flex items-center justify-center text-xs font-semibold text-campus-blue">
-                            {product.sellerName?.charAt(0)}
+                    <div className="flex items-center justify-between mt-3 pt-3 border-t">
+                        <div className="flex items-center gap-2">
+                            <div className="h-6 w-6 rounded-full bg-campus-blue/10 flex items-center justify-center text-xs font-semibold text-campus-blue">
+                                {product.seller?.name?.charAt(0) || "S"}
+                            </div>
+                            <span className="text-xs text-muted-foreground flex items-center gap-1">
+                                {product.seller?.name}
+                                {product.seller?.verified && (
+                                    <CheckCircle size={12} className="text-blue-500" />
+                                )}
+                            </span>
                         </div>
-                        <span className="text-xs text-muted-foreground flex items-center gap-1">
-                            {product.sellerName}
-                            {product.sellerVerified && (
-                                <CheckCircle size={12} className="text-blue-500" />
-                            )}
-                        </span>
+
+                        {product.isOwner && (
+                            <button
+                                onClick={(e) => {
+                                    e.preventDefault();
+                                    onDelete(productId);
+                                }}
+                                className="text-red-500 hover:text-red-700 text-xs font-medium px-2 py-1 rounded hover:bg-red-50 transition-colors flex items-center gap-1"
+                            >
+                                <Trash2 size={12} />
+                                Delete
+                            </button>
+                        )}
                     </div>
                 </div>
             </Link>

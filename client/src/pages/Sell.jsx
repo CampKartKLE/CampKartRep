@@ -169,6 +169,7 @@ const Sell = () => {
             if (editId) {
                 response = await updateListing(editId, submitData);
                 addToast({ title: 'Updated!', description: 'Listing updated successfully' });
+                navigate(`/item/${response._id}`);
             } else {
                 if (newFiles.length === 0) {
                     addToast({ title: 'Upload Required', description: 'Please upload at least one image.', variant: 'destructive' });
@@ -177,10 +178,10 @@ const Sell = () => {
                 }
                 response = await createListing(submitData);
                 addToast({ title: 'Success!', description: 'Your listing is now live' });
+                navigate(`/item/${response.listing._id}`);
             }
 
             localStorage.removeItem('sell_form_draft');
-            navigate(`/item/${response._id || response.id || (response.listing && response.listing._id) || editId}`);
         } catch (error) {
             console.error(error);
             const errorMessage = error.response?.data?.message || error.message || "Failed to save listing";

@@ -106,7 +106,7 @@ exports.updateListing = async (req, res) => {
     const listing = await Listing.findById(req.params.id);
     if (!listing) return res.status(404).json({ message: "Listing not found" });
 
-    if (listing.seller.id.toString() !== req.user.id) {
+    if (listing.seller.id.toString() !== req.user.id.toString()) {
       return res.status(403).json({ message: "Not authorized" });
     }
 
@@ -146,7 +146,7 @@ exports.deleteListing = async (req, res) => {
 
     if (!listing) return res.status(404).json({ message: "Listing not found" });
 
-    if (listing.seller.id.toString() !== req.user.id) {
+    if (listing.seller.id.toString() !== req.user.id.toString()) {
       return res.status(403).json({ message: "Not authorized" });
     }
 
